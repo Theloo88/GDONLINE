@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Games Deluxe Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+    }
+
+    .screen {
+      display: none;
+      padding: 20px;
+    }
+
+    .active {
+      display: block;
+    }
+
+    .navbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #222;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+    }
+
+    .nav-item {
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .nav-item:hover {
+      color: #00d4ff;
+    }
+
+    .person, .shop-item, .quest-box {
+      background: white;
+      padding: 16px;
+      margin: 10px 0;
+      border-radius: 10px;
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .shop-item {
+      height: 120px;
+      font-size: 22px;
+    }
+
+    .shop-item button {
+      padding: 10px 16px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #222;
+      color: white;
+      cursor: pointer;
+    }
+
+    .shop-item button:hover {
+      background: #444;
+    }
+
+    .coin-counter {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: gold;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #intro {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 40px;
+    }
+
+    select, button {
+      padding: 12px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: 1px solid #aaa;
+    }
+
+    button {
+      background: #222;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #444;
+    }
+
+    /* Popup */
+    #popupOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    #popupBox {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 350px;
+      text-align: center;
+      font-size: 20px;
+    }
+
+    #popupButtons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    #popupButtons button {
+      padding: 10px 20px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: none;
+      background: #222;
+      color: white;
+      cursor: pointer;
+    }
+
+    /* Supabase status banner */
+    #supabaseStatus {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffcc00;
+      padding: 8px 20px;
+      border-radius: 0 0 10px 10px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 999;
+      display: block;
+    }
+
+    /* Checkbox visible but unclickable */
+    .quest-box input[type="checkbox"] {
+      pointer-events: none;
+    }
+
+    /* Completed checkbox shows O/ cursor */
+    .quest-box input[type="checkbox"]:disabled {
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Supabase Status Banner -->
+  <div id="supabaseStatus">Checking connection...</div>
+
+  <!-- Popup -->
+  <div id="popupOverlay">
+    <div id="popupBox">
+      <div id="popupText"></div>
+      <div id="popupButtons"></div>
+    </div>
+  </div>
+
+  <!-- Intro Screen -->
+  <div id="intro" class="screen active">
+    <h2>Who Are You?</h2>
+    <select id="userSelect">
+      <option value="">Select your name...</option>
+      <option>Landon</option>
+      <option>Arjun</option>
+      <option>Nico</option>
+      <option>Gael</option>
+      <option>Ian</option>
+      <option>Jake</option>
+      <option>Liam</option>
+      <option>Mateo</option>
+      <option>Ryan</option>
+      <option>Gustavo</option>
+      <option>Julian</option>
+      <option>Alejandro</option>
+      <option>Cristian</option>
+      <option>Vishwa</option>
+      <option>Jose</option>
+      <option>Zane</option>
+      <option>Nathan</option>
+    </select>
+    <button onclick="startGame()">Continue</button>
+  </div>
+
+  <!-- Coin Counter -->
+  <div id="coinCounter" class="coin-counter" style="display:none;">
+    🪙 <span id="coinAmount">0</span>
+  </div>
+
+  <!-- Quests -->
+  <div id="quests" class="screen">
+    <h2>Quests</h2>
+
+    <div class="quest-box" onclick="questClick(1)">Quest 1 <input type="checkbox" id="q1"></div>
+    <div class="quest-box" onclick="questClick(2)">Quest 2 <input type="checkbox" id="q2"></div>
+    <div class="quest-box" onclick="questClick(3)">Quest 3 <input type="checkbox" id="q3"></div>
+    <div class="quest-box" onclick="questClick(4)">Quest 4 <input type="checkbox" id="q4"></div>
+    <div class="quest-box" onclick="questClick(5)">Quest 5 <input type="checkbox" id="q5"></div>
+  </div>
+
+  <!-- People -->
+  <div id="people" class="screen">
+    <h2>People</h2>
+    <div id="peopleList"></div>
+  </div>
+
+  <!-- Shop -->
+  <div id="shop" class="screen">
+    <h2>Shop</h2>
+
+    <div class="shop-item">
+      <div>🏆 Gold Trophy<br><small>200 🪙</small></div>
+      <button onclick="buyItem('Gold Trophy', 200)">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div>🥇 Gold Medal<br><small>100 🪙</small></div>
+      <button onclick="buyItem('Gold Medal', 100)">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div>🥈 Silver Medal<br><small>50 🪙</small></div>
+      <button onclick="buyItem('Silver Medal', 50)">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div>🥉 Bronze Medal<br><small>25 🪙</small></div>
+      <button onclick="buyItem('Bronze Medal', 25)">Buy</button>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="navbar" id="nav" style="display:none;">
+    <div class="nav-item" onclick="showTab('quests')">Quests</div>
+    <div class="nav-item" onclick="showTab('people')">People</div>
+    <div class="nav-item" onclick="showTab('shop')">Shop</div>
+  </div>
+
+<script>
+/* ------------------------------
+   SUPABASE SETUP
+------------------------------ */
+const SUPABASE_URL = "https://mhocabsflgdqpxvvzqmj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ob2NhYnNmbGdkcXB4dnZ6cW1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzOTgxNTEsImV4cCI6MjA4OTk3NDE1MX0.1cabeFA6CcxmQ6AeYmWrn4MVGJ6l3dmEDIMZolmbSPY";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ------------------------------
+   GAME VARIABLES
+------------------------------ */
+let currentUser = "";
+let pendingQuest = null;
+let coins = 0;
+
+const people = [
+  "Landon","Arjun","Nico","Gael","Ian","Jake","Liam","Mateo","Ryan",
+  "Gustavo","Julian","Alejandro","Cristian","Vishwa","Jose","Zane","Nathan"
+];
+
+/* ------------------------------
+   WEEKLY QUEST REWARDS
+------------------------------ */
+const QUEST_REWARDS = {
+  1: 0,
+  2: 0,
+  3: 0,
+  4: 0,
+  5: 25
+};
+
+/* ------------------------------
+   POPUP SYSTEM
+------------------------------ */
+let popupYesCallback = null;
+let popupNoCallback = null;
+
+function showPopup(message, mode = "ok") {
+  document.getElementById("popupText").innerText = message;
+
+  const btns = document.getElementById("popupButtons");
+  btns.innerHTML = "";
+
+  if (mode === "ok") {
+    const ok = document.createElement("button");
+    ok.innerText = "OK";
+    ok.onclick = closePopup;
+    btns.appendChild(ok);
+  }
+
+  if (mode === "yesno") {
+    const yes = document.createElement("button");
+    yes.innerText = "YES";
+    yes.onclick = () => {
+      if (popupYesCallback) popupYesCallback();
+      closePopup();
+    };
+
+    const no = document.createElement("button");
+    no.innerText = "NO";
+    no.onclick = () => {
+      if (popupNoCallback) popupNoCallback();
+      closePopup();
+    };
+
+    btns.appendChild(yes);
+    btns.appendChild(no);
+  }
+
+  document.getElementById("popupOverlay").style.display = "flex";
+}
+
+function closePopup() {
+  document.getElementById("popupOverlay").style.display = "none";
+  popupYesCallback = null;
+  popupNoCallback = null;
+}
+
+/* ------------------------------
+   SUPABASE STATUS
+------------------------------ */
+async function checkSupabaseConnection() {
+  const banner = document.getElementById("supabaseStatus");
+  banner.innerText = "Checking connection...";
+  banner.style.background = "#ffcc00";
+
+  try {
+    const { error } = await supabaseClient.from("players").select("id").limit(1);
+
+    if (error) {
+      banner.style.background = "#ff4444";
+      banner.innerText = "Connection Offline";
+      return false;
+    }
+
+    banner.style.background = "#44cc44";
+    banner.innerText = "Connection Online";
+    return true;
+
+  } catch {
+    banner.style.background = "#ff4444";
+    banner.innerText = "Connection Offline";
+    return false;
+  }
+}
+
+/* ------------------------------
+   START GAME
+------------------------------ */
+async function startGame() {
+  const name = document.getElementById("userSelect").value;
+  if (!name) return showPopup("Please select your name", "ok");
+
+  currentUser = name;
+
+  let { data: player } = await supabaseClient
+    .from("players")
+    .select("*")
+    .eq("name", name)
+    .single();
+
+  if (!player) {
+    await supabaseClient.from("players").insert([{ name: name, coins: 0 }]);
+    player = { name: name, coins: 0 };
+  }
+
+  coins = player.coins;
+  document.getElementById("coinAmount").textContent = coins;
+
+  document.getElementById("intro").style.display = "none";
+  document.getElementById("nav").style.display = "flex";
+  document.getElementById("coinCounter").style.display = "block";
+
+  showTab("quests");
+  loadPeople();
+  loadQuestStatus();
+
+  checkSupabaseConnection();
+}
+
+/* ------------------------------
+   NAVIGATION
+------------------------------ */
+function showTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+}
+
+/* ------------------------------
+   LOAD QUEST STATUS
+------------------------------ */
+async function loadQuestStatus() {
+  const { data: quests } = await supabaseClient
+    .from("quests")
+    .select("*")
+    .eq("player", currentUser);
+
+  if (!quests) return;
+
+  quests.forEach(q => {
+    if (q.completed) {
+      const box = document.getElementById("q" + q.quest_number);
+      box.checked = true;
+      box.disabled = true;
+    }
+  });
+}
+
+/* ------------------------------
+   PEOPLE PAGE
+------------------------------ */
+async function loadPeople() {
+  const container = document.getElementById("peopleList");
+  container.innerHTML = "";
+
+  for (let name of people) {
+    const { data: purchases } = await supabaseClient
+      .from("purchases")
+      .select("*")
+      .eq("player", name);
+
+    let trophy = 0;
+    let gold = 0;
+    let silver = 0;
+    let bronze = 0;
+
+    if (purchases) {
+      purchases.forEach(p => {
+        if (p.item === "Gold Trophy") trophy++;
+        if (p.item === "Gold Medal") gold++;
+        if (p.item === "Silver Medal") silver++;
+        if (p.item === "Bronze Medal") bronze++;
+      });
+    }
+
+    const div = document.createElement("div");
+    div.className = "person";
+
+    div.innerHTML = `
+      ${name}
+      <span>
+        🏆:${trophy} &nbsp;
+        🥇:${gold} &nbsp;
+        🥈:${silver} &nbsp;
+        🥉:${bronze}
+      </span>
+    `;
+
+    container.appendChild(div);
+  }
+}
+
+/* ------------------------------
+   QUEST CLICK HANDLER
+------------------------------ */
+function questClick(num) {
+  const box = document.getElementById("q" + num);
+
+  // If quest already completed → do nothing
+  if (box.disabled) {
+    return;
+  }
+
+  // Otherwise open popup
+  confirmQuest(num);
+}
+
+/* ------------------------------
+   QUEST CONFIRMATION
+------------------------------ */
+function confirmQuest(num) {
+  pendingQuest = num;
+
+  popupYesCallback = async () => {
+    const box = document.getElementById("q" + pendingQuest);
+    box.checked = true;
+    box.disabled = true;
+
+    const reward = QUEST_REWARDS[pendingQuest] || 0;
+    coins += reward;
+    document.getElementById("coinAmount").textContent = coins;
+
+    await supabaseClient
+      .from("players")
+      .update({ coins: coins })
+      .eq("name", currentUser);
+
+    await supabaseClient.from("quests").upsert({
+      player: currentUser,
+      quest_number: pendingQuest,
+      completed: true
+    });
+
+    showPopup(`Quest completed! You earned ${reward} coins.`, "ok");
+  };
+
+  popupNoCallback = () => {};
+
+  showPopup("Are you sure you completed this quest?", "yesno");
+}
+
+/* ------------------------------
+   SHOP PURCHASES
+------------------------------ */
+async function buyItem(item, cost) {
+  if (coins < cost) {
+    return showPopup("Not enough coins!", "ok");
+  }
+
+  coins -= cost;
+  document.getElementById("coinAmount").textContent = coins;
+
+  await supabaseClient.from("players")
+    .update({ coins: coins })
+    .eq("name", currentUser);
+
+  await supabaseClient.from("purchases").insert({
+    player: currentUser,
+    item: item,
+    cost: cost
+  });
+
+  showPopup("You bought a " + item + "!", "ok");
+}
+</script>
+
+</body>
+</html>
