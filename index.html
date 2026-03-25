@@ -192,9 +192,9 @@
 
   <!-- Intro Screen -->
   <div id="intro" class="screen active">
-    <h2>Who Are You?</h2>
+    <h2>Welcome To Games Deluxe Online! Please Select your name.</h2>
     <select id="userSelect">
-      <option value="">Select your name...</option>
+      <option value="">Select...</option>
       <option>Landon</option>
       <option>Arjun</option>
       <option>Nico</option>
@@ -299,7 +299,7 @@ const QUEST_REWARDS = {
   2: 0,
   3: 0,
   4: 0,
-  5: 25
+  5: 0,
 };
 
 /* ------------------------------
@@ -529,7 +529,7 @@ function confirmQuest(num) {
 
   popupNoCallback = () => {};
 
-  showPopup("Are you sure you completed this quest?", "yesno");
+  showPopup("Are you sure you completed this quest? False completions will result in terminitaion until next update", "yesno");
 }
 
 /* ------------------------------
